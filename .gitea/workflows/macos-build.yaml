@@ -1,5 +1,8 @@
 name: macOS Build with Artifacts
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       build_type:
