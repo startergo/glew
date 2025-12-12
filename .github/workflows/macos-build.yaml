@@ -50,8 +50,11 @@ jobs:
       - name: Test Utilities
         run: |
           # Quick smoke test
-          ./bin/glewinfo || true
-          ./bin/visualinfo || true
+          echo "Testing glewinfo with core profile:"
+          ./bin/glewinfo -version 3.2 -profile core 2>&1 | head -10 || true
+          echo ""
+          echo "Testing visualinfo (uses core profile by default):"
+          ./bin/visualinfo 2>&1 | head -20 || true
           
       - name: Package Artifacts
         run: |

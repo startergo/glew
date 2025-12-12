@@ -32,6 +32,12 @@ DYLD_LIBRARY_PATH="$PWD/lib" bin/glewinfo
 ```
 After `sudo make install`, the tools will load the installed `/usr/local/lib/libGLEW.2.2.0.dylib` and no extra env is needed.
 
+**Note:** To request an OpenGL core profile with `glewinfo`, use:
+```sh
+bin/glewinfo -version 3.2 -profile core
+```
+`visualinfo` automatically requests a 3.2 core profile on macOS (with fallback to legacy context).
+
 ## CMake (alternative)
 CMake support is best-effort. A minimal build example:
 ```sh
