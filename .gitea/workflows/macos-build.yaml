@@ -1,0 +1,60 @@
+name: macOS Build with Artifacts
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: false
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4
+      
+      - name: Install Dependencies
+        run: |
+          # Xcode command line tools should be preinstalled
+          # Verify required tools
+          which clang make perl python3 git
+          
+      - name: Generate Sources
+        run: |
+          make -C auto
+          
+      - name: Build Libraries and Utilities
+        run: |
+          make -j$(sysctl -n hw.ncpu)
+          
+      - name: Fix Library Paths for Utilities
+        run: |
+          # Rewrite install_name so utilities can run from build tree
+          install_name_tool -change @rpath/libGLEW.2.2.0.dylib @loader_path/../lib/libGLEW.2.2.0.dylib bin/glewinfo
+          install_name_tool -change @rpath/libGLEW.2.2.0.dylib @loader_path/../lib/libGLEW.2.2.0.dylib bin/visualinfo
+          
+      - name: Test Utilities
+        run: |
+          # Quick smoke test
+          ./bin/glewinfo || true
+          ./bin/visualinfo || true
+          
+      - name: Package Artifacts
+        run: |
+          mkdir -p artifacts/lib artifacts/bin artifacts/include
+          cp -r lib/*.dylib lib/*.a artifacts/lib/
+          cp bin/glewinfo bin/visualinfo artifacts/bin/
+          cp -r include/GL artifacts/include/
+          tar -czf glew-macos-artifacts.tar.gz -C artifacts .
+          
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: glew-macos-${{ github.sha }}
+          path: glew-macos-artifacts.tar.gz
+          retention-days: 30
