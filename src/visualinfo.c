@@ -218,32 +218,54 @@ main (int argc, char** argv)
    for the last one that _may_ terminate in a space. */
 void PrintExtensions (const char* s)
 {
+  GLint n = 0;
+  GLint i;
+  const char* ext;
+
+  if (s == NULL)
+  {
+    if (glGetIntegerv != NULL && glGetStringi != NULL)
+    {
+      glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+      for (i = 0; i < n; ++i)
+      {
+        ext = (const char*)glGetStringi(GL_EXTENSIONS, i);
+        fprintf(file, "    %s%s\n", ext ? ext : "(null)", (i + 1 == n) ? "." : ",");
+      }
+    }
+    else
+    {
+      fprintf(file, "    (extensions string unavailable)\n");
+    }
+    return;
+  }
+
   char t[80];
-  int i=0;
-  char* p=0;
+  int idx = 0;
+  char* p = 0;
 
   t[79] = '\0';
   while (*s)
   {
-    t[i++] = *s;
+    t[idx++] = *s;
     if(*s == ' ')
     {
       if (*(s+1) != '\0') {
-	t[i-1] = ',';
-	t[i] = ' ';
-	p = &t[i++];
+        t[idx-1] = ',';
+        t[idx] = ' ';
+        p = &t[idx++];
       }
       else /* zoinks! last one terminated in a space! */
       {
-	t[i-1] = '\0';
+        t[idx-1] = '\0';
       }
     }
-    if(i > 80 - 5)
+    if(idx > 80 - 5)
     {
-      *p = t[i] = '\0';
+      *p = t[idx] = '\0';
       fprintf(file, "    %s\n", t);
       p++;
-      i = (int)strlen(p);
+      idx = (int)strlen(p);
 #if defined(_MSC_VER) && (_MSC_VER >= 1400)
       strcpy_s(t, sizeof(t), p);
 #else
@@ -252,7 +274,7 @@ void PrintExtensions (const char* s)
     }
     s++;
   }
-  t[i] = '\0';
+  t[idx] = '\0';
   fprintf(file, "    %s.\n", t);
 }
 
@@ -1134,13 +1156,34 @@ void InitContext (GLContext* ctx)
 
 GLboolean CreateContext (GLContext* ctx)
 {
-  CGLPixelFormatAttribute attrib[] = { kCGLPFAAccelerated, 0 };
+  CGLPixelFormatAttribute attrib[5];
+  int i = 0;
   CGLPixelFormatObj pf;
   GLint npix;
   CGLError error;
   /* check input */
   if (NULL == ctx) return GL_TRUE;
+  attrib[i++] = kCGLPFAAccelerated;
+  /* Prefer a 3.2 core profile on macOS when available */
+  attrib[i++] = kCGLPFAOpenGLProfile;
+  attrib[i++] = (CGLPixelFormatAttribute) kCGLOGLPVersion_3_2_Core;
+  attrib[i++] = 0;
+
   error = CGLChoosePixelFormat(attrib, &pf, &npix);
+  if (error) {
+    /* Fallback: try again without the profile request */
+    CGLError first_error = error;
+    CGLPixelFormatAttribute fallback[] = { kCGLPFAAccelerated, 0 };
+    error = CGLChoosePixelFormat(fallback, &pf, &npix);
+    if (!error) {
+      fprintf(stderr, "visualinfo: core profile request failed (%s); falling back to legacy context\n", CGLErrorString(first_error));
+    }
+  }
+  if (!error) {
+    GLint pfProfile = 0;
+    CGLDescribePixelFormat(pf, 0, kCGLPFAOpenGLProfile, &pfProfile);
+    fprintf(stderr, "visualinfo: pixel format profile attr=%d\n", pfProfile);
+  }
   if (error) return GL_TRUE;
   error = CGLCreateContext(pf, NULL, &ctx->ctx);
   if (error) return GL_TRUE;
@@ -1148,6 +1191,10 @@ GLboolean CreateContext (GLContext* ctx)
   ctx->octx = CGLGetCurrentContext();
   error = CGLSetCurrentContext(ctx->ctx);
   if (error) return GL_TRUE;
+  {
+    const GLubyte* ver = glGetString(GL_VERSION);
+    fprintf(stderr, "visualinfo: created context reports GL_VERSION=%s\n", ver ? (const char*)ver : "(null)");
+  }
   return GL_FALSE;
 }
 
