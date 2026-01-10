@@ -38,8 +38,8 @@ jobs:
       - name: Fix Library Paths for Utilities
         run: |
           # Rewrite install_name so utilities can run from build tree
-          install_name_tool -change @rpath/libGLEW.2.2.0.dylib @loader_path/../lib/libGLEW.2.2.0.dylib bin/glewinfo
-          install_name_tool -change @rpath/libGLEW.2.2.0.dylib @loader_path/../lib/libGLEW.2.2.0.dylib bin/visualinfo
+          install_name_tool -change @rpath/libGLEW.2.3.0.dylib @loader_path/../lib/libGLEW.2.3.0.dylib bin/glewinfo
+          install_name_tool -change @rpath/libGLEW.2.3.0.dylib @loader_path/../lib/libGLEW.2.3.0.dylib bin/visualinfo
           
       - name: Test Utilities
         run: |
