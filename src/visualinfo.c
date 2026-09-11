@@ -47,6 +47,15 @@
 #elif defined(__APPLE__) && !defined(GLEW_APPLE_GLX)
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/CGLTypes.h>
+/* CGL profile constants: added in the 10.7 SDK.  Define them when building
+   against older SDKs so the request is compiled in; CGL on pre-10.7 rejects
+   the attribute and we fall back to a legacy context at runtime. */
+#ifndef kCGLPFAOpenGLProfile
+#define kCGLPFAOpenGLProfile 99
+#endif
+#ifndef kCGLOGLPVersion_3_2_Core
+#define kCGLOGLPVersion_3_2_Core 0x3200
+#endif
 #elif !defined(__HAIKU__)
 #include <GL/glxew.h>
 #endif
@@ -1160,11 +1169,12 @@ GLboolean CreateContext (GLContext* ctx)
   int i = 0;
   CGLPixelFormatObj pf;
   GLint npix;
-  CGLError error;
+  CGLError error, first_error;
   /* check input */
   if (NULL == ctx) return GL_TRUE;
   attrib[i++] = kCGLPFAAccelerated;
-  /* Prefer a 3.2 core profile on macOS when available */
+  /* Prefer a 3.2 core profile on macOS when available; on pre-10.7 CGL
+     rejects the attribute and the fallback below gets a legacy context */
   attrib[i++] = kCGLPFAOpenGLProfile;
   attrib[i++] = (CGLPixelFormatAttribute) kCGLOGLPVersion_3_2_Core;
   attrib[i++] = 0;
@@ -1172,7 +1182,7 @@ GLboolean CreateContext (GLContext* ctx)
   error = CGLChoosePixelFormat(attrib, &pf, &npix);
   if (error) {
     /* Fallback: try again without the profile request */
-    CGLError first_error = error;
+    first_error = error;
     CGLPixelFormatAttribute fallback[] = { kCGLPFAAccelerated, 0 };
     error = CGLChoosePixelFormat(fallback, &pf, &npix);
     if (!error) {

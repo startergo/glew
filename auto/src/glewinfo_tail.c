@@ -430,22 +430,30 @@ void glewDestroyContext (void)
 
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/CGLTypes.h>
+/* CGL profile constants: added in the 10.7 SDK.  Define them when building
+   against older SDKs so the request is compiled in; CGL on pre-10.7 rejects
+   the attribute and we fall back to a legacy context at runtime. */
+#ifndef kCGLPFAOpenGLProfile
+#define kCGLPFAOpenGLProfile 99
+#endif
+#ifndef kCGLOGLPVersion_3_2_Core
+#define kCGLOGLPVersion_3_2_Core 0x3200
+#endif
 
 CGLContextObj ctx, octx;
 
 GLboolean glewCreateContext (struct createParams *params)
 {
   CGLPixelFormatAttribute contextAttrs[20];
-  int i;
+  int i, nBase;
   CGLPixelFormatObj pf;
   GLint npix;
-  CGLError error;
+  CGLError error, first_error;
 
   i = 0;
   contextAttrs[i++] = kCGLPFAAccelerated; /* No software rendering */
+  nBase = i; /* attributes before the optional profile request */
 
-  /* MAC_OS_X_VERSION_10_7  == 1070 */
-  #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
   if (params->profile & GL_CONTEXT_CORE_PROFILE_BIT)
   {
     if ((params->major==3 && params->minor>=2) || params->major>3)
@@ -454,11 +462,21 @@ GLboolean glewCreateContext (struct createParams *params)
       contextAttrs[i++] = (CGLPixelFormatAttribute) kCGLOGLPVersion_3_2_Core;  /* 3.2 Core Context      */
     }
   }
-  #endif
 
   contextAttrs[i++] = 0;
 
   error = CGLChoosePixelFormat(contextAttrs, &pf, &npix);
+  if (error && i > nBase + 1)
+  {
+    /* Fallback: retry without the profile request (pre-10.7 CGL rejects it) */
+    first_error = error;
+    contextAttrs[nBase] = 0;
+    error = CGLChoosePixelFormat(contextAttrs, &pf, &npix);
+    if (!error)
+    {
+      fprintf(stderr, "glewinfo: core profile request failed (%s); falling back to legacy context\n", CGLErrorString(first_error));
+    }
+  }
   if (error) return GL_TRUE;
   error = CGLCreateContext(pf, NULL, &ctx);
   if (error) return GL_TRUE;
