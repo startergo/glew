@@ -16,7 +16,8 @@ make -C auto
 make -j
 
 # 3) (Optional) Install system-wide
-sudo make install   # installs to /usr/local by default
+#     plain "make install" skips the glewinfo/visualinfo tools; use install.all:
+sudo make install.all   # installs libs, headers, and tools to /usr/local
 
 # 4) Clean build outputs
 make clean
@@ -30,7 +31,7 @@ If you run `bin/glewinfo` or `bin/visualinfo` without installing, ensure they ca
 ```sh
 DYLD_LIBRARY_PATH="$PWD/lib" bin/glewinfo
 ```
-After `sudo make install`, the tools will load the installed `/usr/local/lib/libGLEW.2.2.0.dylib` and no extra env is needed.
+After `sudo make install.all`, the tools will load the installed `/usr/local/lib/libGLEW.2.3.1.dylib` and no extra env is needed.
 
 **Note:** To request an OpenGL core profile with `glewinfo`, use:
 ```sh
@@ -49,7 +50,7 @@ For a framework build, add `-DBUILD_FRAMEWORK=ON` and set `-DCMAKE_INSTALL_PREFI
 
 ## Troubleshooting
 - **OpenGL deprecation warnings:** Expected on macOS 10.14+; harmless for building.
-- **Loader errors (`Library not loaded: /usr/local/lib/libGLEW.2.2.0.dylib`):**
+- **Loader errors (`Library not loaded: /usr/local/lib/libGLEW.2.3.1.dylib`):**
   - Run the tools with `DYLD_LIBRARY_PATH="$PWD/lib"` (or install system-wide), or
-  - Rewrite rpaths/install_name locally: `install_name_tool -change @rpath/libGLEW.2.2.0.dylib @loader_path/../lib/libGLEW.2.2.0.dylib bin/visualinfo`.
+  - Rewrite rpaths/install_name locally: `install_name_tool -change @rpath/libGLEW.2.3.1.dylib @loader_path/../lib/libGLEW.2.3.1.dylib bin/visualinfo`.
 - **Missing generated sources:** Always run `make -C auto` before the main build when using a repo checkout.

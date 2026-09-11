@@ -77,9 +77,10 @@ FreeBSD: `# pkg install xorg lang/gcc git cmake gmake bash python perl5`
 
 	$ make
 	$ sudo make install
+	$ sudo make install.all
 	$ make clean
 
-Targets:    `all, glew.lib (sub-targets: glew.lib.shared, glew.lib.static), glew.bin, clean, install, uninstall`
+Targets:    `all, glew.lib (sub-targets: glew.lib.shared, glew.lib.static), glew.bin, clean, install, install.all, uninstall`
 
 Variables:  `SYSTEM=linux-clang, GLEW_DEST=/usr/local, STRIP=`
 
